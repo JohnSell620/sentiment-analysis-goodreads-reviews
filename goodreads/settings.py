@@ -6,8 +6,8 @@ DEFAULT_ITEM_CLASS = 'goodreads.items.GoodreadsItem'
 
 ITEM_PIPELINES = {
 	'goodreads.pipelines.RequiredFieldsPipeline': 200,
-	'goodreads.pipelines.RequiredWordsPipeline': 400,
-	'goodreads.pipelines.MySQLStorePipeline': 600,
+	'goodreads.pipelines.RequiredWordsPipeline': 250,
+	'goodreads.pipelines.MySQLStorePipeline': 300, #600
 }
 
 MYSQL_HOST = 'localhost'
@@ -15,7 +15,10 @@ MYSQL_PORT = 3306
 MYSQL_DBNAME = 'goodreads'
 MYSQL_USER = 'root'
 MYSQL_PASSWD = 'root'
+MYSQL_TABLE = 'reviews'
 
+
+LOG_FILE = 'wslog.log'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'goodreads (+http://www.yourdomain.com)'

@@ -13,10 +13,10 @@ class GoodreadsSpider(Spider):
     allowed_domains = ['www.goodreads.com']
     start_urls = [
         'https://www.goodreads.com/genres/art',
-        # 'https://www.goodreads.com/genres/history',
-        # 'https://www.goodreads.com/genres/philosophy',
-        # 'https://www.goodreads.com/genres/religion',
-        # 'https://www.goodreads.com/genres/science',
+        'https://www.goodreads.com/genres/history',
+        'https://www.goodreads.com/genres/philosophy',
+        'https://www.goodreads.com/genres/religion',
+        'https://www.goodreads.com/genres/science',
     ]
 
 
@@ -28,11 +28,11 @@ class GoodreadsSpider(Spider):
         book_urls = Selector(response).xpath('//div[@class="leftContainer"]/div/div[@class="bigBoxBody"]/div/div/div[@class="leftAlignedImage bookBox"]/div[@class="coverWrapper"]/a/@href')
 
         for book_url in book_urls:
-            # item = GoodreadsItem()
             book_url = book_url.extract()
             url = "https://www.goodreads.com" + book_url
             self.driver.get(url)
             request = Request(url,callback=self.parse2)
+            # item = GoodreadsItem()
             # request.meta['item'] = item
             request.meta['book_url'] = url
             yield request
@@ -55,7 +55,7 @@ class GoodreadsSpider(Spider):
             item = GoodreadsItem()
             item['title'] =  title.extract()[0]
             item['book_url'] = response.meta['book_url']
-            item['genre'] = genre.extract()
+            item['genre'] = genre.extract()[0]
             item['link_url'] = review.xpath(           './/div/div/link/@href').extract()[0]
             item['reviewDate'] = review.xpath(               './/div/div/div/div/a/text()').extract()[0]
             item['user'] = review.xpath(               './/div/div/div/div/span/a/text()').extract()[0]

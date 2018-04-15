@@ -1,8 +1,16 @@
 from scrapy.exceptions import DropItem
+from twisted.internet import defer
 from twisted.enterprise import adbapi
 from datetime import datetime
 from hashlib import md5
 import logging
+import pprint
+from pymysql.cursors import DictCursor
+from pymysql import OperationalError
+from pymysql.constants.CR import CR_SERVER_GONE_ERROR, CR_SERVER_LOST, CR_CONNECTION_ERROR
+
+logger = logging.getLogger(__name__)
+logger.setLevel('DEBUG')
 
 
 class RequiredFieldsPipeline(object):
@@ -35,61 +43,106 @@ class RequiredWordsPipeline(object):
 			return item
 
 
+'''Asynchronous mysql Scrapy item pipeline. Credit to laroslavR@github.com'''
 class MySQLStorePipeline(object):
-    """Uses Twisted's asynchronous database API."""
-
-    def __init__(self, dbpool):
-        self.dbpool = dbpool
+    stats_name = 'mysql_store_pipeline'
 
     @classmethod
-    def from_settings(cls, settings):
-        dbargs = dict(
-            host=settings['MYSQL_HOST'],
-			port=settings['MYSQL_PORT'],
-            db=settings['MYSQL_DBNAME'],
-            user=settings['MYSQL_USER'],
-            passwd=settings['MYSQL_PASSWD'],
-            charset='utf8',
-            use_unicode=True,
-        )
-        dbpool = adbapi.ConnectionPool('MySQLdb', **dbargs)
-        return cls(dbpool)
+    def from_crawler(cls, crawler):
+        return cls(crawler)
 
+    def __init__(self, crawler):
+        self.stats = crawler.stats
+        self.settings = crawler.settings
+        db_args = {
+            'host': self.settings.get('MYSQL_HOST', 'localhost'),
+            'port': self.settings.get('MYSQL_PORT', 3306),
+            'user': self.settings.get('MYSQL_USER', 'root'),
+            'password': self.settings.get('MYSQL_PASSWORD', 'root'),
+            'db': self.settings.get('MYSQL_DB', 'goodreads'),
+            'charset': 'utf8',
+            'cursorclass': DictCursor,
+            'cp_reconnect': True,
+        }
+        self.retries = self.settings.get('MYSQL_RETRIES', 3)
+        self.close_on_error = self.settings.get('MYSQL_CLOSE_ON_ERROR', True)
+        self.upsert = self.settings.get('MYSQL_UPSERT', False)
+        self.table = self.settings.get('MYSQL_TABLE', 'reviews')
+        self.db = adbapi.ConnectionPool('pymysql', **db_args)
+
+    def close_spider(self, spider):
+        self.db.close()
+
+    @staticmethod
+    def preprocess_item(item):
+        """Can be useful with extremly straight-line spiders design without item loaders or items at all
+        CAVEAT: On my opinion if you want to write something here - you must read
+        http://scrapy.readthedocs.io/en/latest/topics/loaders.html before
+        """
+        return item
+
+    def postprocess_item(self, *args):
+        """Can be useful if you need to update query tables depends of mysql query result"""
+        pass
+
+    @defer.inlineCallbacks
     def process_item(self, item, spider):
-        d = self.dbpool.runInteraction(self._do_upsert, item, spider)
-        d.addErrback(self._handle_error, item, spider)
-        d.addBoth(lambda _: item)
-        return d
-
-    def _do_upsert(self, conn, item, spider):
-        """Perform an insert or update."""
-        guid = self._get_guid(item)
-        now = datetime.utcnow().replace(microsecond=0).isoformat(' ')
-
-        conn.execute("""SELECT EXISTS(
-            SELECT 1 FROM reviews WHERE guid = %s
-        )""", (guid, ))
-        ret = conn.fetchone()[0]
-
-        if ret:
-            conn.execute("""
-                UPDATE reviews
-                SET title=%s genre=%s link_url=%s book_url=%s, user=%s, reviewDate=%s, review=%s
-                WHERE guid=%s
-            """, (item['title'], item['genre'], item['link_url'], item['book_url'], item['user'], item['reviewDate'], item['review'], now, guid))
-            spider.log("Item updated in db: %s %r" % (guid, item))
+        retries = self.retries
+        status = False
+        while retries:
+            try:
+                item = self.preprocess_item(item)
+                yield self.db.runInteraction(self._process_item, item)
+            except OperationalError as e:
+                if e.args[0] in (
+                        CR_SERVER_GONE_ERROR,
+                        CR_SERVER_LOST,
+                        CR_CONNECTION_ERROR,
+                ):
+                    retries -= 1
+                    logger.info('%s %s attempts to reconnect left', e, retries)
+                    self.stats.inc_value('{}/reconnects'.format(self.stats_name))
+                    continue
+                logger.exception('%s', pprint.pformat(item))
+                self.stats.inc_value('{}/errors'.format(self.stats_name))
+            except Exception:
+                logger.exception('%s', pprint.pformat(item))
+                self.stats.inc_value('{}/errors'.format(self.stats_name))
+            else:
+                status = True  # executed without errors
+            break
         else:
-            conn.execute("""
-                INSERT INTO reviews (guid, title, genre, link_url, book_url, user, reviewDate, review)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (guid, item['title'], item['genre'], item['link_url'], item['book_url'], item['user'], item['reviewDate'], item['review'], now))
-            spider.log("Item stored in db: %s %r" % (guid, item))
+            if self.close_on_error:  # Close spider if connection error happened and MYSQL_CLOSE_ON_ERROR = True
+                spider.crawler.engine.close_spider(spider, '{}_fatal_error'.format(self.stats_name))
+        self.postprocess_item(item, status)
+        yield item
 
-    def _handle_error(self, failure, item, spider):
-		"""Handle occurred on db interaction."""
-		logger = logging.getLogger()
-		logger.warning("Warning: query failed.")
+    def _generate_sql(self, data):
+        columns = lambda d: ', '.join(['`{}`'.format(k) for k in d])
+        values = lambda d: [v for v in d.values()]
+        placeholders = lambda d: ', '.join(['%s'] * len(d))
+        if self.upsert:
+            sql_template = 'INSERT INTO `{}` ( {} ) VALUES ( {} ) ON DUPLICATE KEY UPDATE {}'
+            on_duplicate_placeholders = lambda d: ', '.join(['`{}` = %s'.format(k) for k in d])
+            return (
+                sql_template.format(
+                    self.table, columns(data),
+                    placeholders(data), on_duplicate_placeholders(data)
+                ),
+                values(data) + values(data)
+            )
+        else:
+            sql_template = 'INSERT INTO `{}` ( {} ) VALUES ( {} )'
+            return (
+                sql_template.format(self.table, columns(data), placeholders(data)),
+                values(data)
+            )
 
-    def _get_guid(self, item):
-		"""Generates an unique identifier for a given item."""
-		return md5(item['url']).hexdigest()
+    def _process_item(self, tx, row):
+        sql, data = self._generate_sql(row)
+        try:
+            tx.execute(sql, data)
+        except Exception:
+            logger.error("SQL: %s", sql)
+            raise
+        self.stats.inc_value('{}/saved'.format(self.stats_name))
