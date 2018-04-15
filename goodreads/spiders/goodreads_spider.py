@@ -49,11 +49,13 @@ class GoodreadsSpider(Spider):
 
         title = Selector(response).xpath('//div[@class="leftContainer"]/div/div/div/div/a/img[@id="coverImage"]/@alt')
         genre = Selector(response).xpath('//div[@class="rightContainer"]/div/div/div[@class="bigBoxBody"]/div/div/div[@class="left"]/a/text()')
+        rating = Selector(response).xpath('//div[@class="leftContainer"]/div/div[@id="metacol"]/div[@id="bookMeta"]/span/span[@class="average"]/text()')
         reviews = Selector(response).xpath('//div[@id="bookReviews"]/div[@class="friendReviews elementListBrown"]')
 
         for review in reviews:
             item = GoodreadsItem()
             item['title'] =  title.extract()[0]
+            item['rating'] = rating.extract()[0]
             item['book_url'] = response.meta['book_url']
             item['genre'] = genre.extract()[0]
             item['link_url'] = review.xpath(           './/div/div/link/@href').extract()[0]
