@@ -1,3 +1,6 @@
+*.pyc
+*.ipynb
 *.log
 *.json
-*.pyc
+.ipynb_checkpoints/
+*.off

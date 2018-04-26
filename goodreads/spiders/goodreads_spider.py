@@ -32,8 +32,6 @@ class GoodreadsSpider(Spider):
             url = "https://www.goodreads.com" + book_url
             self.driver.get(url)
             request = Request(url,callback=self.parse2)
-            # item = GoodreadsItem()
-            # request.meta['item'] = item
             request.meta['book_url'] = url
             yield request
 
