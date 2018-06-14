@@ -26,7 +26,7 @@ class RequiredFieldsPipeline(object):
 
 
 class RequiredWordsPipeline(object):
-    """Only store reviews with certain keywords"""
+    '''Only store reviews with certain keywords'''
 
     # put all words in lowercase
     words_to_filter = ['']  # e.g., 'positive','Dostoyevsky', etc.

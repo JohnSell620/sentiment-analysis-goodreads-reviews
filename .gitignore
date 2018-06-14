@@ -4,3 +4,12 @@
 *.json
 .ipynb_checkpoints/
 *.off
+*.copy
+*.npy
+__pycache__/
+models/
+*.npy
+
+# used to convert/update model checkpoints
+# from https://github.com/tensorflow/tensorflow/blob/8753e2ebde6c58b56675cc19ab7ff83072824a62/tensorflow/contrib/rnn/python/tools/checkpoint_convert.py
+checkpoint_convert.py   
