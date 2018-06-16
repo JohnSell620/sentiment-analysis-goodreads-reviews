@@ -18,9 +18,9 @@ Three machine learning techniques are used in this project to obtain classificat
 ## Usage
 1. Install dependencies:
 ```python
-python -m virtualenv goodreads
-source goodreads/bin/activate
-pip install -r requirements.txt
+$ python -m virtualenv goodreads
+$ source goodreads/bin/activate
+$ pip install -r requirements.txt
 ```
 
 2. Create SQL table to store Goodreads review data:
@@ -41,7 +41,7 @@ CREATE TABLE `reviews` (
 
 3. Run Scrapy web crawler:
 ```
-scrapy crawl goodreads
+$ scrapy crawl goodreads
 ```
 In pipelines.py, you may add certain words to the words_to_filter array in the RequiredFieldsPipeline class to filter the reviews.
 
