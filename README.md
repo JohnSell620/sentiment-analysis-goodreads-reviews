@@ -9,6 +9,7 @@ Three machine learning techniques are used in this project to obtain classificat
 
 ## Latest Results
 The nodes in the graph are colored by genre. Their radii vary by the average rating of the title. Position in the y-direction are given by the rating multiplied by the sentiment (+1 or -1).
+
 ![D3.js](./results/class_by_id_1.png?raw=true "D3 Class * Rating vs ID")
 
 ## Dependencies

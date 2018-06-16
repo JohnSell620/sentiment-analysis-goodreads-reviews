@@ -2,10 +2,6 @@
 
 header('Access-Control-Allow-Origin: *');
 
-class link {
-
-}
-
 // Database credentials
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');
@@ -21,8 +17,12 @@ $dbh = new PDO($dsn, DB_USER, DB_PASSWORD);
 // Set exception mode for PDO
 $dbh->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
 
-// Statement handle reviews.genre, sentiments.id"
-$sth = $dbh->prepare( "SELECT sentiments.class, reviews.rating, reviews.genre, reviews.title, sentiments.id FROM sentiments LEFT JOIN reviews ON sentiments.id=reviews.id");
+// Statement handle
+$statement = <<<EOT
+  SELECT sentiments.class, reviews.rating, reviews.genre, reviews.title,
+  sentiments.id FROM sentiments LEFT JOIN reviews ON sentiments.id=reviews.id
+EOT;
+$sth = $dbh->prepare($statement);
 
 if ($sth->execute())
 {
@@ -55,7 +55,7 @@ if ($sth->execute())
     }
   }
 
-  // combine nodes and Links arrays 
+  // combine nodes and Links arrays
   $data = array();
   $data['nodes'] = $nodes;
   $data['links'] = $Links;
