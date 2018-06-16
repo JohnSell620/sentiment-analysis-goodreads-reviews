@@ -1,0 +1,6 @@
+scrapy==1.4.0
+selenium==3.8.0
+pymysql==0.8.0
+pandas==0.22.0
+numpy==1.14.2
+sqlalchemy==1.2.7

@@ -182,10 +182,12 @@ d3.json("http://localhost:8000/data.php", function (error, data) {
   circles.exit().remove();
 
 
+
+/* The following code is from an article by Martin Chorley at
+   https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d. */
+
+
   // TODO: create edges
-
-  // The following code is from https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d, an article by Martin Chorley.
-
   // build dictionary of title-connected nodes
   var linkedByIndex = {};
 

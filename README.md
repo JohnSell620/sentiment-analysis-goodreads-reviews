@@ -15,14 +15,14 @@ The nodes in the graph are colored by genre. Their radii vary by the average rat
 ## Dependencies
 - web scraping: [Scrapy](https://scrapy.org) 1.4.0, [Selenium](https://www.seleniumhq.org/) (3.8.0), [PyMySQL](https://pymysql.readthedocs.io/en/latest/) 0.8.0.
 - ML and computation: [Pandas](http://pandas.pydata.org) (0.22.0), [NumPy](http://www.numpy.org) (1.14.2), [SQLAlchemy](https://www.sqlalchemy.org/) (1.2.7).
--Dataviz: [D3.js](https://d3js.org/).
+- Dataviz: [D3.js](https://d3js.org/).
 
 ## Usage
 1. Install dependencies:
 ```
-\$ python -m virtualenv goodreads
-\$ source goodreads/bin/activate
-\$ pip install -r requirements.txt
+$ python -m virtualenv goodreads
+$ source goodreads/bin/activate
+$ pip install -r requirements.txt
 ```
 
 2. Create SQL table to store Goodreads review data:
@@ -43,7 +43,7 @@ CREATE TABLE `reviews` (
 
 3. Run Scrapy web crawler:
 ```
-\$ scrapy crawl goodreads
+$ scrapy crawl goodreads
 ```
 In pipelines.py, you may add certain words to the words_to_filter array in the RequiredFieldsPipeline class to filter the reviews.
 
