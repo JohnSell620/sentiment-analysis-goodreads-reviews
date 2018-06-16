@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  .axis text {
+    font-family: 'Poiret One', cursive;
+    font-size: 16pt;
+  }
+
+  .axis .label {
+    font-size: 20pt;
+  }
+
+  .axis path, .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  text {
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  }
+
+  svg {
+    width: 100%;
+  }
+
+  .link {
+    fill: none;
+    stroke: #ddd;
+  }
+
+  .node {
+    stroke: #000;
+    stroke-width: 1px;
+  }
+
+	</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+
+<script>
+
+var outerWidth  = 1000;
+var outerHeight = 600;
+var margin = { left: 60, top: 0, right: 0, bottom: 0 },
+    innerWidth  = outerWidth - margin.left - margin.right,
+    innerHeight = outerHeight - margin.top - margin.bottom;
+
+var xColumn = "id";
+var yColumn = "class";
+var rColumn = "rating";
+var colorColumn = "genre";
+
+var rMin = 1;
+var rMax = 5;
+
+var xAxisLabelText = "Review ID";
+var xAxisLabelOffset = 20; //48;
+var xTicks = 0;
+
+var yAxisLabelText = "Class * Rating";
+var yAxisLabelOffset = 30;
+var yTicks = 0;
+
+var svg = d3.select("body").append("svg")
+  .attr("width", outerWidth)
+  .attr("height", outerHeight);
+var g = svg.append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+var xAxisG = g.append("g")
+  .attr("class", "x axis")
+  .attr("transform", "translate(0," + innerHeight + ")")
+var xAxisLabel = xAxisG.append("text")
+  .style("text-anchor", "middle")
+  .attr("x", innerWidth / 2)
+  .attr("y", xAxisLabelOffset)
+  .attr("class", "label")
+  .text(xAxisLabelText);
+var posYAxisG = g.append("g")
+  .attr("class", "y axis");
+var negYAxisG = g.append("g")
+  .attr("class", "y axis");
+var yAxisLabel = posYAxisG.append("text")
+  .style("text-anchor", "middle")
+  .attr("transform", "translate(-" + yAxisLabelOffset + "," + (innerHeight / 2) + ") rotate(-90)")
+  .attr("class", "label")
+  .text(yAxisLabelText);
+
+
+var xScale = d3.scale.linear().range([10, outerWidth]);
+var posYScale = d3.scale.linear().range([outerHeight, outerHeight*2/3]);
+var negYScale = d3.scale.linear().range([0, outerHeight/3]);
+var rScale = d3.scale.linear().range([rMin,rMax]);
+var colorScale = d3.scale.category10();
+
+var xAxis = d3.svg.axis().scale(xScale).orient("bottom")
+  .ticks(xTicks)
+  .tickFormat(d3.format("s"))
+  .outerTickSize(0);
+var posYAxis = d3.svg.axis().scale(posYScale).orient("left")
+  .ticks(yTicks)
+  .tickFormat(d3.format("s"))
+  .outerTickSize(0);
+var negYAxis = d3.svg.axis().scale(negYScale).orient("left")
+  .ticks(yTicks)
+  .tickFormat(d3.format("s"))
+  .outerTickSize(0);
+
+
+var Art = ["Art", "Sequential", "Poetry"];
+var History = ["History", "Historical", "Music"];
+var Religion = ["Christian", "Religion"];
+var Philosophy = ["Philosophy"];
+var Science = ["Science", "Pyschology", "Space", "Health"];
+var Nonfiction = ["Nonfiction", "Biography", "Autobiography", "Politics", "Education", "Business", "Media Tie In"];
+var Fiction = ["Fiction", "Mystery", "Classics", "Children", "Contemporary", "Young Adult", "Romance"];
+
+
+var edges = [];
+d3.json("http://localhost:8000/data.php", function (error, data) {
+  if (error) throw error;
+
+  var nodes = data.nodes,
+      links = data.links;
+
+  nodes.forEach(function(d) {
+    d.class  = +d.class;
+    d.id     = +d.id;
+    d.rating = +d.rating;
+    d.title = d.title;
+    d.genre = d.genre;
+
+    if (Fiction.some(el => d.genre.includes(el))) {
+      d.genre = "Fiction";
+    } else if (Art.some(el => d.genre.includes(el))) {
+      d.genre = "Art";
+    } else if (History.some(el => d.genre.includes(el))) {
+      d.genre = "History";
+    } else if (Religion.some(el => d.genre.includes(el))) {
+      d.genre = "Religion";
+    } else if (Philosophy.some(el => d.genre.includes(el))) {
+      d.genre = "Philosophy";
+    } else if (Science.some(el => d.genre.includes(el))) {
+      d.genre = "Science";
+    } else if (Nonfiction.some(el => d.genre.includes(el))) {
+      d.genre = "Nonfiction";
+    } else {
+      d.genre = "Other";
+    }
+
+   return d;
+  });
+
+  xScale.domain(d3.extent(nodes, function (d){ return d[xColumn]*1; }));
+  posYScale.domain(d3.extent(nodes, function (d){
+    if (d.class > 0) { return d[yColumn]*d[rColumn]*1.1; }
+  }));
+  negYScale.domain(d3.extent(nodes, function (d){
+    if (d.class < 0) { return d[yColumn]*d[rColumn]*1.1; }
+  }));
+  rScale.domain(d3.extent(nodes, function (d){ return d[rColumn]; }));
+
+  xAxisG.call(xAxis);
+  posYAxisG.call(posYAxis);
+  negYAxisG.call(negYAxis);
+
+  var circles = g.selectAll("circle").data(nodes);
+  circles.enter().append("circle");
+  circles
+    .attr("cx", function (d){ return xScale(d[xColumn]); })
+    .attr("cy", function (d){
+      if (d.class > 0) { return posYScale(d[yColumn]*d[rColumn]); }
+      else { return negYScale(d[yColumn]*d[rColumn]); }
+    })
+    .attr("r", function (d){ return rScale(d[rColumn]); })
+    .attr("fill", function (d){ return colorScale(d[colorColumn]); });
+
+  circles.exit().remove();
+
+
+  // TODO: create edges
+
+  // The following code is from https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d, an article by Martin Chorley.
+
+  // build dictionary of title-connected nodes
+  var linkedByIndex = {};
+
+  // check if nodes have same title
+  function isConnected() {}
+
+  // fade nodes on hover
+  function mouseOver(opacity) {
+    return function(d) {
+      // check all other nodes to see if they're connected
+      // to this one. if so, keep the opacity at 1, otherwise
+      // fade
+      node.style("stroke-opacity", function(o) {
+        thisOpacity = isConnected(d, o) ? 1 : opacity;
+        return thisOpacity;
+      });
+      node.style("fill-opacity", function(o) {
+        thisOpacity = isConnected(d, o) ? 1 : opacity;
+        return thisOpacity;
+      });
+      // also style link accordingly
+      link.style("stroke-opacity", function(o) {
+        return o.source === d || o.target === d ? 1 : opacity;
+      });
+      link.style("stroke", function(o) {
+        return o.source === d || o.target === d ? o.source.color : "#ddd";
+      });
+    };
+  }
+
+  function mouseOut() {
+    node.style("stroke-opacity", 1);
+    node.style("fill-opacity", 1);
+    link.style("stroke-opacity", 1);
+    link.style("stroke", "#ddd");
+  }
+
+});
+
+
+</script>
+</body>
+</html>

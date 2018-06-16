@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 from scrapy import Spider
 from scrapy.selector import Selector
@@ -51,21 +53,21 @@ class GoodreadsSpider(Spider):
             self.driver.quit()
 
         title = Selector(response).xpath(
-                '//div[@class="leftContainer"]/div/div/div/div/\
-                a/img[@id="coverImage"]/@alt'
-                )
+                    '//div[@class="leftContainer"]/div/div/div/div/ \
+                    a/img[@id="coverImage"]/@alt'
+                    )
         genre = Selector(response).xpath(
-                '//div[@class="rightContainer"]/div/div/\
-                div[@class="bigBoxBody"]/div/div/div[@class="left"]/a/text()'
-                )
+                    '//div[@class="rightContainer"]/div/div/ \
+                    div[@class="bigBoxBody"]/div/div/div[@class="left"]/a/text()'
+                    )
         rating = Selector(response).xpath(
-                '//div[@class="leftContainer"]/div/div[@id="metacol"]/\
-                div[@id="bookMeta"]/span/span[@class="average"]/text()'
-                )
+                    '//div[@class="leftContainer"]/div/div[@id="metacol"]/ \
+                    div[@id="bookMeta"]/span/span[@class="average"]/text()'
+                    )
         reviews = Selector(response).xpath(
-                '//div[@id="bookReviews"]/\
-                div[@class="friendReviews elementListBrown"]'
-                )
+                    '//div[@id="bookReviews"]/ \
+                    div[@class="friendReviews elementListBrown"]'
+                    )
 
         for review in reviews:
             try:
@@ -79,15 +81,15 @@ class GoodreadsSpider(Spider):
                 item['reviewDate'] = review.xpath(               './/div/div/div/div/a/text()').extract()[0]
                 item['user'] = review.xpath(               './/div/div/div/div/span/a/text()').extract()[0]
 
-                review_text = review.xpath('.//div/div/div/\
-                                            div[@class="reviewText stacked"]/\
-                                            span/span[2]/text()'
-                                            ).extract()[0]
+                review_text = review.xpath('.//div/div/div/ \
+                                div[@class="reviewText stacked"]/span/ \
+                                span[2]/text()'
+                                ).extract()[0]
                 # remove html tags
                 item['review'] = remove_tags(review_text)
 
             except IndexError as e:
-                print("title: ",item['title'], "user: ",item['user'])
+                print(e,": title: ",item['title'], "user: ",item['user'])
                 logger.error(e.args[0])
                 raise
 
