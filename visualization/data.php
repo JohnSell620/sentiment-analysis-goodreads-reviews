@@ -18,10 +18,10 @@ $dbh = new PDO($dsn, DB_USER, DB_PASSWORD);
 $dbh->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
 
 // Statement handle
-$statement = <<<EOT
+$statement = <<<HERE
   SELECT sentiments.class, reviews.rating, reviews.genre, reviews.title,
   sentiments.id FROM sentiments LEFT JOIN reviews ON sentiments.id=reviews.id
-EOT;
+HERE;
 $sth = $dbh->prepare($statement);
 
 if ($sth->execute())
@@ -37,19 +37,20 @@ if ($sth->execute())
   $link = new stdClass();
   $Links = array();
 
-  // this works since the reviews are stored in order by title
+  // this works since the reviews are stored in order by title in MySQL
   for ($i = 0; $i < sizeof($nodes)-1; $i++)
   {
-    $prev_id = $nodes[$i]->id;
-    $curr_id = $nodes[$i+1]->id;
-    $prev_title = $nodes[$i]->title;
-    $curr_title = $nodes[$i+1]->title;
-    if ($prev_title == $curr_title)
+    $curr_id = $nodes[$i]->id;
+    $next_id = $nodes[$i+1]->id;
+    $curr_title = $nodes[$i]->title;
+    $next_title = $nodes[$i+1]->title;
+
+    if ($curr_title == $next_title)
     {
       $link = new stdClass();
-      $link->source = $prev_id;
-      $link->target = $curr_id;
-      $link->title = $prev_title;
+      $link->source = $curr_id;
+      $link->target = $next_id;
+      $link->title = $curr_title;
       $link->value = $nodes[$i]->rating;
       array_push($Links, $link);
     }
