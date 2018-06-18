@@ -11,15 +11,15 @@ The Word2Vec model was trained using the word vector generation model [GloVe](ht
 These graphs were generated with code adapted from Matrin Chorley's [article](https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d).
 The nodes are colored by genre, and their radii vary by the average rating of the title. Positions in the y-direction are given by the rating multiplied by the sentiment (+1 or -1).
 
-<img src="./visualization/class_by_id_2.png" alt="D3.js" width="100px" />
-<img src="./visualization/class_by_id_3.png" alt="D3.js" width="100px" />
+<img src="./visualization/class_by_id_2.png" alt="D3.js" width="375px" />
+<img src="./visualization/class_by_id_3.png" alt="D3.js" width="375px" />
 <!--
 ![D3.js](./visualization/class_by_id_2.png=100x ?raw=true "D3 Class * Rating vs ID")
 ![D3.js](./visualization/class_by_id_3.png=100x ?raw=true "D3 Class * Rating vs ID") -->
 
 This force-directed graph was generated with code adapted from Martin Chorley's article and Mike Bostock's [here](https://bl.ocks.org/mbostock/4600693).
 
-<img src="./visualization/forced_1.gif" alt="D3.js" width="100px" />
+<img src="./visualization/forced_1.gif" alt="D3.js" width="85000px" />
 <!--
 ![D3.js](./visualization/forced_1.gif=100x ?raw=true "D3 Class * Rating vs ID")
 -->
