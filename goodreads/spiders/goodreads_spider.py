@@ -18,6 +18,7 @@ logger.setLevel('DEBUG')
 class GoodreadsSpider(Spider):
     name = "goodreads"
     allowed_domains = ['www.goodreads.com']
+    # crawler will scrape more genres than these listed
     start_urls = [
         'https://www.goodreads.com/genres/art',
         'https://www.goodreads.com/genres/history',
