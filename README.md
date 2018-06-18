@@ -8,9 +8,15 @@ Three machine learning techniques are used in this project to obtain classificat
 The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
 
 ## Latest Results
-The nodes in the graph are colored by genre. Their radii vary by the average rating of the title. Position in the y-direction are given by the rating multiplied by the sentiment (+1 or -1).
+These graphs were generated with code adapted from Matrin Chorley's [article](https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d).
+The nodes are colored by genre, and their radii vary by the average rating of the title. Positions in the y-direction are given by the rating multiplied by the sentiment (+1 or -1).
 
-![D3.js](./results/class_by_id_1.png?raw=true "D3 Class * Rating vs ID")
+![D3.js](./results/class_by_id_2.png=100x ?raw=true "D3 Class * Rating vs ID")
+![D3.js](./results/class_by_id_3.png=100x ?raw=true "D3 Class * Rating vs ID")
+
+This force-directed graph was generated with code adapted from Martin Chorley's article and Mike Bostock's [here](https://bl.ocks.org/mbostock/4600693).
+
+![D3.js](./results/forced_1.gif=100x ?raw=true "D3 Class * Rating vs ID")
 
 ## Dependencies
 - web scraping: [Scrapy](https://scrapy.org) 1.4.0, [Selenium](https://www.seleniumhq.org/) (3.8.0), [PyMySQL](https://pymysql.readthedocs.io/en/latest/) 0.8.0.
