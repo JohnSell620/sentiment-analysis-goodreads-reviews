@@ -76,10 +76,12 @@ class GoodreadsSpider(Spider):
                 item['rating'] = rating.extract()[0]
                 item['book_url'] = response.meta['book_url']
                 item['genre'] = genre.extract()[0]
-                item['link_url'] = review.xpath('.//div/div/link/@href')\
-                                    .extract()[0]
-                item['reviewDate'] = review.xpath(               './/div/div/div/div/a/text()').extract()[0]
-                item['user'] = review.xpath(               './/div/div/div/div/span/a/text()').extract()[0]
+                item['link_url'] = review.xpath(
+                                './/div/div/link/@href').extract()[0]
+                item['reviewDate'] = review.xpath(
+                                './/div/div/div/div/a/text()').extract()[0]
+                item['user'] = review.xpath(
+                                './/div/div/div/div/span/a/text()').extract()[0]
 
                 review_text = review.xpath('.//div/div/div/ \
                                 div[@class="reviewText stacked"]/span/ \
