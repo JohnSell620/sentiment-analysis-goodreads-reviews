@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.x.axis path {
+  display: none;
+}
+
+</style>
+<body>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 20, bottom: 70, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x0 = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+
+var x1 = d3.scale.ordinal();
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x0)
+    .tickSize(0)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var color = d3.scale.ordinal()
+    .range(["#ca0020","#0571b0"]);
+
+var svg = d3.select('body').append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("http://localhost:8000/bar.php", function(error, data) {
+
+  var genresNames = data.map(function(d) { return d.genre; });
+  var rateNames = data[0].titles.map(function(d) { return d.rate; });
+
+  x0.domain(genresNames);
+  x1.domain(rateNames).rangeRoundBands([0, x0.rangeBand()]);
+  y.domain([0, d3.max(data, function(genre) { return d3.max(genre.titles, function(d) { return d.value; }); })]);
+
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis)
+      .selectAll("text")
+        .attr("dx", "-4em")
+        .attr("dy", ".15em")
+        .attr("transform", "rotate(-65)");
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .style('opacity','0')
+      .call(yAxis)
+  .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .style('font-weight','bold')
+      .text("Value");
+
+  svg.select('.y').transition().duration(500).delay(1300).style('opacity','1');
+
+  var slice = svg.selectAll(".slice")
+      .data(data)
+      .enter().append("g")
+      .attr("class", "g")
+      .attr("transform",function(d) { return "translate(" + x0(d.genre) + ",0)"; });
+
+  slice.selectAll("rect")
+      .data(function(d) { return d.titles; })
+  .enter().append("rect")
+      .attr("width", x1.rangeBand())
+      .attr("x", function(d) { return x1(d.rate); })
+      .style("fill", function(d) { return color(d.rate) })
+      .attr("y", function(d) { return y(0); })
+      .attr("height", function(d) { return height - y(0); })
+      .on("mouseover", function(d) {
+          d3.select(this).style("fill", d3.rgb(color(d.rate)).darker(2));
+      })
+      .on("mouseout", function(d) {
+          d3.select(this).style("fill", color(d.rate));
+      });
+
+  slice.selectAll("rect")
+      .transition()
+      .delay(function (d) {return Math.random()*1000;})
+      .duration(1000)
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+
+});
+
+</script>

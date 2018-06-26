@@ -3,25 +3,23 @@ This project goes through the entire data mining process in an attempt to better
 
 This work examines these relationships as a NLP problem, namely, a document level sentiment classification problem. Sentiment predictions are made and then data visualization techniques are used to gain insight about the review-rating-genre relationship.
 
-Three machine learning techniques are used in this project to obtain classifications. One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). (TODO) In addition, a C++ implementation of a Naive Bayes classifier by the [Text Mining Group, Nanjing University of Science & Technology,](https://github.com/NUSTM) is used for classifying.
+Two machine learning techniques are used in this project to obtain classifications. One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). (TODO) In addition, a C++ implementation of a Naive Bayes classifier by the [Text Mining Group, Nanjing University of Science & Technology,](https://github.com/NUSTM) is used for classifying.
 
 The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
 
 ## Latest Results
+The bar chart was adopted from [Brice Pierre de la Briere's article](https://bl.ocks.org/bricedev/0d95074b6d83a77dc3ad). The red bars represent average book ratings where there were more negative reviews predicted by the LSTM network than positive ones. More blue bars indicate that the Goodreads rating system is representative of user sentiments. (More analysis to come).
+<img src="./visualization/bar_1.gif" alt="D3.js" width="850px" />
+
+
 These graphs were generated with code adapted from Matrin Chorley's [article](https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d).
 The nodes are colored by genre, and their radii vary by the average rating of the title. Positions in the y-direction are given by the rating multiplied by the sentiment (+1 or -1).
 
 <img src="./visualization/class_by_id_2.png" alt="D3.js" width="400px" />                 <img src="./visualization/class_by_id_3.png" alt="D3.js" width="400px" />
-<!--
-![D3.js](./visualization/class_by_id_2.png=100x ?raw=true "D3 Class * Rating vs ID")
-![D3.js](./visualization/class_by_id_3.png=100x ?raw=true "D3 Class * Rating vs ID") -->
 
 This force-directed graph was generated with code adapted from Martin Chorley's article and Mike Bostock's [here](https://bl.ocks.org/mbostock/4600693).
 
 <img src="./visualization/forced_1.gif" alt="D3.js" width="850px" />
-<!--
-![D3.js](./visualization/forced_1.gif=100x ?raw=true "D3 Class * Rating vs ID")
--->
 
 ## Dependencies
 - Web scraping: [Scrapy](https://scrapy.org) 1.4.0, [Selenium](https://www.seleniumhq.org/) (3.8.0), [PyMySQL](https://pymysql.readthedocs.io/en/latest/) 0.8.0.
