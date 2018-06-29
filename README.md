@@ -3,9 +3,13 @@ This project goes through the entire data mining process in an attempt to better
 
 This work examines these relationships as a NLP problem, namely, a document level sentiment classification problem. Sentiment predictions are made and then data visualization techniques are used to gain insight about the review-rating-genre relationship.
 
-Two machine learning techniques are used in this project to obtain classifications. One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). (TODO) In addition, a C++ implementation of a Naive Bayes classifier by the [Text Mining Group, Nanjing University of Science & Technology,](https://github.com/NUSTM) is used for classifying.
+Two machine learning techniques are used in this project to obtain classifications (imminent). One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
 
-The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
+In addition, a C++ implementation of a Naive Bayes classifier by the [Text Mining Group, Nanjing University of Science & Technology,](https://github.com/NUSTM) is used for classifying.
+
+## TODO
+ - Further analysis and visualization are needed to reach conclusions.
+ - Port XIA-NB classifier to run on GPU.
 
 ## Latest Results
 The bar chart was adopted from [Brice Pierre de la Briere's article](https://bl.ocks.org/bricedev/0d95074b6d83a77dc3ad). The red bars represent average book ratings where there were more negative reviews predicted by the LSTM network than positive ones. More blue bars indicate that the Goodreads rating system is representative of user sentiments. (More analysis to come).
