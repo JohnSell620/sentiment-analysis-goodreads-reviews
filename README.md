@@ -32,7 +32,7 @@ This force-directed graph was generated with code adapted from Martin Chorley's 
 
 ## Usage
 1. Install dependencies:
-```
+```bash
 $ python -m virtualenv goodreads
 $ source goodreads/bin/activate
 $ pip install -r requirements.txt
@@ -55,7 +55,7 @@ CREATE TABLE `reviews` (
 ```
 
 3. Run Scrapy web crawler:
-```
+```bash
 $ scrapy crawl goodreads
 ```
 In pipelines.py, you may add certain words to the words_to_filter array in the RequiredFieldsPipeline class to filter the reviews.
