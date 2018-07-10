@@ -52,7 +52,7 @@ var svg = d3.select('body').append("svg")
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-d3.json("http://localhost:8000/bar.php", function(error, data) {
+d3.json("http://localhost:8000/bar_data.php", function(error, data) {
 
   var genresNames = data.map(function(d) { return d.genre; });
   var rateNames = data[0].titles.map(function(d) { return d.rate; });

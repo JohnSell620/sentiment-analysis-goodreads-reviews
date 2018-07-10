@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  .axis text {
+    font-family: 'Poiret One', cursive;
+    font-size: 16pt;
+  }
+
+  .axis .label {
+    font-size: 20pt;
+  }
+
+  .axis path, .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+  }
+
+  text {
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  }
+
+  svg {
+    width: 100%;
+  }
+
+  .link {
+    fill: none;
+    stroke: #ddd;
+  }
+
+  .node {
+    stroke: #000;
+    stroke-width: 1.5px;
+  }
+
+	</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+
+<script>
+/* Much of the following code was adapted from code in an article by Martin
+   Chorley at https://bl.ocks.org/martinjc/e4c013dab1fabb2e02e2ee3bc6e1b49d. */
+
+var outerWidth  = 1000;
+var outerHeight = 600;
+var margin = { left: 0, top: 0, right: 0, bottom: 0 },
+    innerWidth  = outerWidth - margin.left - margin.right,
+    innerHeight = outerHeight - margin.top - margin.bottom;
+
+var xColumn = "id";
+var yColumn = "class";
+var rColumn = "rating";
+var colorColumn = "genre";
+
+var rMin = 1;
+var rMax = 5;
+
+var xAxisLabelText = "Review ID";
+var xAxisLabelOffset = 0;
+var xTicks = 0;
+
+var yAxisLabelText = "Class * Rating";
+var yAxisLabelOffset = 0;
+var yTicks = 0;
+
+var svg = d3.select("body").append("svg")
+  .attr("width", outerWidth)
+  .attr("height", outerHeight);
+var g = svg.append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+var xAxisG = g.append("g")
+  .attr("class", "x axis")
+  .attr("transform", "translate(0," + innerHeight + ")")
+var xAxisLabel = xAxisG.append("text")
+  .style("text-anchor", "middle")
+  .attr("x", innerWidth / 2)
+  .attr("y", xAxisLabelOffset)
+  .attr("class", "label")
+  .text(xAxisLabelText);
+var posYAxisG = g.append("g")
+  .attr("class", "y axis");
+var negYAxisG = g.append("g")
+  .attr("class", "y axis");
+var yAxisLabel = posYAxisG.append("text")
+  .style("text-anchor", "middle")
+  .attr("transform", "translate(-" + yAxisLabelOffset + "," + (innerHeight / 2) + ") rotate(-90)")
+  .attr("class", "label")
+  .text(yAxisLabelText);
+
+
+var xScale = d3.scaleLinear().range([10, outerWidth]);
+var posYScale = d3.scaleLinear().range([outerHeight, outerHeight*2/3]);
+var negYScale = d3.scaleLinear().range([0, outerHeight/3]);
+var rScale = d3.scaleLinear().range([rMin,rMax]);
+var colorScale = d3.scaleOrdinal(d3.schemeCategory20);
+
+var xAxis = d3.axisBottom().scale(xScale)
+  .ticks(xTicks)
+  .tickFormat(d3.format("s"))
+  .tickSizeOuter(0);
+var posYAxis = d3.axisLeft().scale(posYScale)
+  .ticks(yTicks)
+  .tickFormat(d3.format("s"))
+  .tickSizeOuter(0);
+var negYAxis = d3.axisLeft().scale(negYScale)
+  .ticks(yTicks)
+  .tickFormat(d3.format("s"))
+  .tickSizeOuter(0);
+
+
+var Art = ["Art", "Sequential", "Poetry"];
+var History = ["History", "Historical", "Music"];
+var Religion = ["Christian", "Religion"];
+var Philosophy = ["Philosophy"];
+var Science = ["Science", "Pyschology", "Space", "Health"];
+var Nonfiction = ["Nonfiction", "Biography", "Autobiography", "Politics", "Education", "Business", "Media Tie In"];
+var Fiction = ["Fiction", "Mystery", "Classics", "Children", "Contemporary", "Young Adult", "Romance"];
+
+
+var linkWidthScale = d3.scaleLinear()
+  .range([.1, 15]);
+var linkStrengthScale = d3.scaleLinear()
+  .range([0, .45]);
+
+var simulation = d3.forceSimulation()
+  // pull nodes together based on the links between them
+  .force("link", d3.forceLink()
+    .id(function(d) {
+      return d.id;
+    })
+    .strength(function(d) {
+      return linkStrengthScale(d.value);
+    }))
+  // push nodes apart to space them out
+  .force("charge", d3.forceManyBody()
+    .strength(-200))
+  // add some collision detection so they don't overlap
+  .force("collide", d3.forceCollide()
+    .radius(40))
+  // and draw them around the center of the space
+  .force("center", d3.forceCenter(innerWidth / 2, innerHeight / 2));
+
+
+// comment out this variable and use the above for forced graph using
+// linkWidthScale and linkStrengthScale
+var simulation = d3.forceSimulation()
+  .force("charge", d3.forceManyBody().strength(-200))
+  .force("link", d3.forceLink().id(function(d) { return d.id; }).distance(40))
+  .force("x", d3.forceX(innerWidth / 2))
+  .force("y", d3.forceY(innerHeight / 2));
+
+
+d3.json("http://localhost:8000/graph_data.php", function (error, data) {
+  if (error) throw error;
+
+  var nodes = data.nodes,
+      nodeById = d3.map(nodes, function(d) { return d.id; }),
+      links = data.links,
+      bilinks = [];
+
+  nodes.forEach(function(d) {
+    d.class  = +d.class;
+    d.id     = +d.id;
+    d.rating = +d.rating;
+    d.title = d.title;
+    d.genre = d.genre;
+
+    if (Fiction.some(el => d.genre.includes(el))) {
+      d.genre = "Fiction";
+    } else if (Art.some(el => d.genre.includes(el))) {
+      d.genre = "Art";
+    } else if (History.some(el => d.genre.includes(el))) {
+      d.genre = "History";
+    } else if (Religion.some(el => d.genre.includes(el))) {
+      d.genre = "Religion";
+    } else if (Philosophy.some(el => d.genre.includes(el))) {
+      d.genre = "Philosophy";
+    } else if (Science.some(el => d.genre.includes(el))) {
+      d.genre = "Science";
+    } else if (Nonfiction.some(el => d.genre.includes(el))) {
+      d.genre = "Nonfiction";
+    } else {
+      d.genre = "Other";
+    }
+
+   return d;
+  });
+
+  xScale.domain(d3.extent(nodes, function (d){ return d[xColumn]*1; }));
+  posYScale.domain(d3.extent(nodes, function (d){
+    if (d.class > 0) { return d[yColumn]*d[rColumn]*1.1; }
+  }));
+  negYScale.domain(d3.extent(nodes, function (d){
+    if (d.class < 0) { return d[yColumn]*d[rColumn]*1.1; }
+  }));
+  rScale.domain(d3.extent(nodes, function (d){ return d[rColumn]; }));
+
+  linkWidthScale.domain(d3.extent(links, function(d) {
+    return d.value*10;
+  }));
+  linkStrengthScale.domain(d3.extent(links, function(d) {
+    return d.value;
+  }));
+
+  xAxisG.call(xAxis);
+  posYAxisG.call(posYAxis);
+  negYAxisG.call(negYAxis);
+
+  // add the curved links to our graphic
+  var link = svg.selectAll(".link")
+    .data(links)
+    .enter()
+    .append("path")
+    .attr("class", "link")
+    .attr('stroke', function(d) {
+        return "#ddd";
+    })
+    .attr('stroke-width', function(d) {
+        return linkWidthScale(d.value);
+    });
+
+  // add the nodes to the graphic
+  var node = svg.selectAll(".node")
+    .data(nodes)
+    .enter()
+    .append("g");
+
+  // a circle to represent the node
+  node.append("circle")
+    .attr("class", "node")
+    // comment out the methods for 'cx' and 'cy' for forced graph
+    .attr("cx", function (d){ return xScale(d[xColumn]); })
+    .attr("cy", function (d){
+      if (d.class > 0) { return posYScale(d[yColumn]*d[rColumn]); }
+      else { return negYScale(d[yColumn]*d[rColumn]); }
+    })
+    .attr("r", function (d){ return rScale(d[rColumn]); })
+    .attr("fill", function (d){ return colorScale(d[colorColumn]); })
+    .on("mouseover", mouseOver(.1))
+    .on("mouseout", mouseOut)
+    .call(d3.drag()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended));
+
+
+  // hover text for the node
+  node.append("title")
+    .text(function(d) {
+      return d.genre + ",\n" + d.title;
+    });
+
+  // add the nodes to the simulation and
+  // tell it what to do on each tick
+  simulation
+    .nodes(nodes)
+    .on("tick", ticked);
+
+  // add the links to the simulation
+  simulation
+    .force("link")
+    .links(links);
+
+  // on each tick, update node and link positions
+  function ticked() {
+      link.attr("d", positionLink);
+      node.attr("transform", positionNode);
+  }
+
+  // links are drawn as curved paths between nodes,
+  // through the intermediate nodes
+  function positionLink(d) {
+    var offset = 5;
+
+    var midpoint_x = (d.source.x + d.target.x) / 2;
+    var midpoint_y = (d.source.y + d.target.y) / 2;
+
+    var dx = (d.target.x - d.source.x);
+    var dy = (d.target.y - d.source.y);
+
+    var normalise = Math.sqrt((dx * dx) + (dy * dy));
+
+    var offSetX = midpoint_x + offset * (dy / normalise);
+    var offSetY = midpoint_y - offset * (dx / normalise);
+
+    return "M" + d.source.x + "," + d.source.y +
+      "S" + offSetX + "," + offSetY +
+      " " + d.target.x + "," + d.target.y;
+  }
+
+  // move the node based on forces calculations
+  function positionNode(d) {
+    // keep the node within the boundaries of the svg
+    if (d.x < 0) {
+      d.x = 0
+    };
+    if (d.y < 0) {
+      d.y = 0
+    };
+    if (d.x > innerWidth) {
+      d.x = innerWidth
+    };
+    if (d.y > innerHeight) {
+      d.y = innerHeight
+    };
+    return "translate(" + d.x + "," + d.y + ")";
+    // return "translate(0,0)";
+  }
+
+  function dragstarted(d) {
+    if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x, d.fy = d.y;
+  }
+
+  function dragged(d) {
+  d .fx = d3.event.x, d.fy = d3.event.y;
+  }
+
+  function dragended(d) {
+    if (!d3.event.active) simulation.alphaTarget(0);
+    d.fx = null, d.fy = null;
+  }
+
+  // build dictionary of title-connected nodes
+  var linkedByIndex = {};
+  links.forEach(function(d) {
+    linkedByIndex[d.source.index + "," + d.target.index] = 1;
+  });
+
+  // check if nodes have same title
+  function isConnected(a, b) {
+    return linkedByIndex[a.index + "," + b.index] || linkedByIndex[b.index + "," + a.index] || a.index == b.index;
+  }
+
+  // fade nodes on hover
+  function mouseOver(opacity) {
+    return function(d) {
+      // check all other nodes to see if they're connected
+      // to this one. if so, keep the opacity at 1, otherwise
+      // fade
+      node.style("stroke-opacity", function(o) {
+        thisOpacity = isConnected(d, o) ? 1 : opacity;
+        return thisOpacity;
+      });
+      node.style("fill-opacity", function(o) {
+        thisOpacity = isConnected(d, o) ? 1 : opacity;
+        return thisOpacity;
+      });
+      // also style link accordingly
+      link.style("stroke-opacity", function(o) {
+        return o.source === d || o.target === d ? 1 : opacity;
+      });
+      link.style("stroke", function(o) {
+        return o.source === d || o.target === d ? o.source.color : "#ddd";
+      });
+    };
+    node.text.style("opacity", 1);
+  }
+
+  function mouseOut() {
+    node.style("stroke-opacity", 1);
+    node.style("fill-opacity", 1);
+    link.style("stroke-opacity", 1);
+    link.style("stroke", "#ddd");
+  }
+
+});
+
+
+</script>
+</body>
+</html>
