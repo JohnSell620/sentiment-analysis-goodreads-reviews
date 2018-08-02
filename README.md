@@ -60,13 +60,13 @@ $ scrapy crawl goodreads
 ```
 In pipelines.py, you may add certain words to the words_to_filter array in the RequiredFieldsPipeline class to filter the reviews.
 
-4. Choose classification algorithm to run:
-..*scikit-learn Multinomial Naive Bayes classifier: `python multnb_sklearn.py`
-..*XIA-NB C++ Naive Bayes Classifier: `python nb_xia.py`
-..*RNN with LSTMs: `python rnn.py`
+4. Choose classification algorithm to run: change to `goodreads/learn` directory and run one of the following.
+- LSTM network: `python main.py`
+- (TODO) scikit-learn Multinomial Naive Bayes classifier: `python multnb_sklearn.py`
+- (TODO) XIA-NB C++ Naive Bayes Classifier: `python nb_xia.py`
 
 5. Visualize data:
-..1. Start php server in goodreads/visualization directory: `php -S localhost:8000`. If you use `python -m http.server`, you will get the error "Failed to load http://localhost:8000/data.php: No 'Access-Control-Allow-Origin' header is present on the requested resource..."
+..1. Start php server in `goodreads/visualization` directory: `php -S localhost:8000`. If you use `python -m http.server`, you will get the error "Failed to load http://localhost:8000/data.php: No 'Access-Control-Allow-Origin' header is present on the requested resource..."
 ..2. Open index.html in browser.
 
 ## Acknowledgements

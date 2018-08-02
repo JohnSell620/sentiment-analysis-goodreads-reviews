@@ -4,7 +4,7 @@ from random import randint
 import tensorflow as tf
 import re
 import sys
-import data_utils as dt
+import utils
 
 
 # variables used in RNN training
@@ -15,34 +15,10 @@ lstmUnits = 64
 numClasses = 2
 iterations = 100000
 
-
-# remove punctuation, parentheses, question marks, etc.
-strip_special_chars = re.compile("[^A-Za-z0-9 ]+")
-
-def cleanSentences(string):
-    string = string.lower().replace("<br />", " ")
-    return re.sub(strip_special_chars, "", string.lower())
-
-def getSentenceMatrix(sentence):
-    arr = np.zeros([batchSize, maxSeqLength])
-    sentenceMatrix = np.zeros([batchSize,maxSeqLength], dtype='int32')
-    cleanedSentence = cleanSentences(sentence)
-    split = cleanedSentence.split()
-    for indexCounter,word in enumerate(split):
-        try:
-            sentenceMatrix[0,indexCounter] = wordsList.index(word)
-        except ValueError:
-            sentenceMatrix[0,indexCounter] = 399999 #Vector for unkown words
-        except IndexError:
-            break
-    return sentenceMatrix
-
-
 # data structures for words
 wordsList = np.load('wordsList.npy').tolist()
 wordsList = [word.decode('UTF-8') for word in wordsList] # Encode as UTF-8
 wordVectors = np.load('wordVectors.npy')
-
 
 # restore the graph
 tf.reset_default_graph()
@@ -72,16 +48,15 @@ sess = tf.InteractiveSession()
 saver = tf.train.Saver()
 saver.restore(sess, tf.train.latest_checkpoint('converted_checkpoint'))
 
-
 # store clean review data to data frame
-df = dt.retrieve_data()
+df = utils.retrieve_data()
 
 # classify reviews
 result = np.zeros((df.shape[0],2))
 for i, row in enumerate(df.itertuples(),0):
     result[i][0] = getattr(row,'id')
     inputText = getattr(row,'review')
-    inputMatrix = getSentenceMatrix(inputText)
+    inputMatrix = utils.getSentenceMatrix(inputText, batchSize, maxSeqLength, wordsList)
     predictedSentiment = sess.run(prediction, {input_data: inputMatrix})[0]
     if (predictedSentiment[0] > predictedSentiment[1]):
         result[i][1] = 1
@@ -91,6 +66,7 @@ for i, row in enumerate(df.itertuples(),0):
 sentiment = pd.DataFrame(result).astype('int32')
 sentiment.columns = ['id', 'class']
 
+# # store predictions in MySQL database
+# utils.store_prediction(sentiment)
 
-# store predictions in MySQL database
-dt.store_prediction(sentiment)
+print(sentiment.head())
