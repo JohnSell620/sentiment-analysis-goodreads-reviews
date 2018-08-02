@@ -62,7 +62,6 @@ In pipelines.py, you may add certain words to the words_to_filter array in the R
 
 4. Choose classification algorithm to run: change to `goodreads/learn` directory and run one of the following.
 - LSTM network: `python main.py`
-- (TODO) scikit-learn Multinomial Naive Bayes classifier: `python multnb_sklearn.py`
 - (TODO) XIA-NB C++ Naive Bayes Classifier: `python nb_xia.py`
 
 5. Visualize data:

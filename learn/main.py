@@ -66,7 +66,5 @@ for i, row in enumerate(df.itertuples(),0):
 sentiment = pd.DataFrame(result).astype('int32')
 sentiment.columns = ['id', 'class']
 
-# # store predictions in MySQL database
-# utils.store_prediction(sentiment)
-
-print(sentiment.head())
+# store predictions in MySQL database
+utils.store_prediction(sentiment)
