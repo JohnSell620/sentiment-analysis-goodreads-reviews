@@ -67,4 +67,4 @@ sentiment = pd.DataFrame(result).astype('int32')
 sentiment.columns = ['id', 'class']
 
 # store predictions in MySQL database
-utils.store_prediction(sentiment)
+utils.store_prediction_mysql(sentiment)

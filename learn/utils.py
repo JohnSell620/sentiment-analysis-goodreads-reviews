@@ -4,15 +4,28 @@ import re
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, MetaData, ForeignKey
 import string
+import pydoop.hdfs as hdfs
 
 
-def retrieve_data():
+def retrieve_data_hdfs():
+    with hdfs.open_file('/usr/local/hadoop/hadoopdata/hdfs/datanode/goodreads.csv', 'r') as f:
+        df = pd.read_csv(f)
+    return df
+
+
+def retrieve_data_mysql():
     # connect to MySQL database and query data
     engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
     with engine.connect() as db_conn:
         df = pd.read_sql('SELECT * FROM reviews', con=db_conn)
         print('loaded dataframe from MySQL. records: ', len(df))
         db_conn.close()
+    return df
+
+
+def retrieve_data():
+    # df = retrieve_data_hdfs()
+    df = retrieve_data_mysql()
 
     # convert rating string to float
     df.rating = df.rating.astype(float).fillna(0.0)
@@ -50,7 +63,13 @@ def getSentenceMatrix(sentence, batchSize, maxSeqLength, wordsList):
     return sentenceMatrix
 
 
-def store_prediction(sentiment):
+def store_prediction_hdfs(sentiment):
+    client_hdfs = InsecureClient('http://' + os.environ['IP_HDFS'] + ':50070')
+    with client_hdfs.write('/usr/local/hadoop/hadoopdata/hdfs/datanode/sentiments.csv', encoding='utf-8') as writer:
+        sentiment.to_csv(writer)
+
+
+def store_prediction_mysql(sentiment):
     engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
     meta = MetaData()
 
