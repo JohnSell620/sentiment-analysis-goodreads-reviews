@@ -4,7 +4,8 @@ import re
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, MetaData, ForeignKey
 import string
-import pydoop.hdfs as hdfs
+# import pydoop.hdfs as hdfs
+import hdfs
 
 
 def retrieve_data_hdfs():
@@ -94,3 +95,12 @@ def store_prediction_mysql(sentiment):
                         index=False)
         print('inserted dataframe to MySQL. records: ', len(sentiment))
         db_conn.close()
+
+
+def retrieve_sentiments():
+    engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
+    with engine.connect() as db_conn:
+        df = pd.read_sql('SELECT r.id, r.title, r.genre, r.user, r.reviewDate, r.review, r.rating, s.class FROM reviews AS r INNER JOIN sentiments AS s ON r.id = s.id', con=db_conn)
+        print('loaded dataframe from MySQL. records: ', len(df))
+        db_conn.close()
+    return df
