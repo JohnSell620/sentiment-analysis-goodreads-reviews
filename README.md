@@ -15,12 +15,12 @@ In addition, a C++ implementation of a Naive Bayes classifier by the [Text Minin
 The bar chart was adopted from [Brice Pierre de la Briere's article](https://bl.ocks.org/bricedev/0d95074b6d83a77dc3ad). The red bars represent average book ratings where there were more negative reviews predicted by the LSTM network than positive ones. The larger number of blue bars indicates that the Goodreads rating system is representative of user sentiments.
 <img src="./visualization/images/bar_1.gif" alt="D3.js" width="850px" />
 
-<img src="./visualization/images/cnt_by_genre_sentiment.png" alt="D3.js" width="800px" />
-<img src="./visualization/images/review_len_rate_box.png" alt="D3.js" width="800px" />
-<img src="./visualization/images/avg_rating_by_genre.png" alt="D3.js" width="400px" />
-<img src="./visualization/images/review_genre_cnt.png" alt="D3.js" width="400px" />
-<img src="./visualization/images/rating_dist.png" alt="D3.js" width="410px" padding-left="-10px"/>
-<img src="./visualization/images/review_len_dist.png" alt="D3.js" width="400px" />
+<img src="./visualization/images/cnt_by_genre_sentiment.png" alt="seaborn" width="800px" />
+<img src="./visualization/images/review_len_rate_box.png" alt="seaborn" width="800px" />
+<img src="./visualization/images/avg_rating_by_genre.png" alt="seaborn" width="800px" />
+<img src="./visualization/images/review_genre_cnt.png" alt="seaborn" width="800px" />
+<img src="./visualization/images/rating_dist.png" alt="seaborn" width="800px" />
+<img src="./visualization/images/review_len_dist.png" alt="seaborn" width="800px" />
 
 
 
