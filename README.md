@@ -5,7 +5,7 @@ This work examines these relationships as a NLP problem - namely, a document lev
 
 Two machine learning techniques are used in this project to obtain classifications. One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
 
-The second classification method was a Naive Bayes model trained on the TF-IDF of words in each sentence constructed into the feature matrix.
+The second classification method used a Naive Bayes model trained on the TF-IDF of words in each sentence constructed into the feature matrix. This was done with Apache Spark ML.
 
 ## TODO
  - Further analysis and visualization are needed to reach conclusions.
