@@ -1,11 +1,11 @@
 ## Overview
-This project goes through the entire data mining process in an attempt to better understand book reviews on the Goodreads website. The typical book listed on the Goodreads website has one rating (an average) along with many reviews, and most of the featured books' ratings fall into a limited range, thus it is inherently difficult to understand the meaning of the rating. The goal here is to examine the sentiments of user reviews and book ratings across numerous genres.
+This project goes through the entire data mining process in an attempt to better understand book reviews on the Goodreads website. The goal here is to examine the sentiments of user reviews and book ratings across numerous genres.
 
-This work examines these relationships as a NLP problem, namely, a document level sentiment classification problem. Sentiment predictions are made and then data visualization techniques are used to gain insight about the review-rating-genre relationship.
+This work examines these relationships as a NLP problem - namely, a document level sentiment classification problem. Sentiment classifications are made and then data visualization techniques are used to gain insight about the review-rating-genre relationship.
 
-Two machine learning techniques are used in this project to obtain classifications (imminent). One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
+Two machine learning techniques are used in this project to obtain classifications. One classification is done using a pretrained RNN with long short term memory units (LSTMs) and with a pretrained Word2Vec model; both were pretrained by Adit Deshpande and may be found [here](https://github.com/adeshpande3/LSTM-Sentiment-Analysis). The Word2Vec model was trained using the word vector generation model [GloVe](https://nlp.stanford.edu/projects/glove/). The word embedding matrix contains 400,000 word vectors with words having dimensionality of 50. The RNN was trained on the IMDb movie review dataset containing 12,500 positive and 12,500 negative reviews.
 
-In addition, a C++ implementation of a Naive Bayes classifier by the [Text Mining Group, Nanjing University of Science & Technology,](https://github.com/NUSTM) is used for classifying (imminent).
+The second classification method was a Naive Bayes model trained on the TF-IDF of words in each sentence constructed into the feature matrix.
 
 ## TODO
  - Further analysis and visualization are needed to reach conclusions.
@@ -64,13 +64,15 @@ CREATE TABLE `reviews` (
 
 3. Run Scrapy web crawler:
 ```bash
+$ cd utils
 $ scrapy crawl goodreads
 ```
 In pipelines.py, you may add certain words to the words_to_filter array in the RequiredFieldsPipeline class to filter the reviews.
 
-4. Choose classification algorithm to run: change to `goodreads/learn` directory and run one of the following.
-- LSTM network: `python main.py`
-- (TODO) XIA-NB C++ Naive Bayes Classifier: `python nb_xia.py`
+4. Choose classification algorithm to run: change to `goodreads/models` directory and run one of the following.
+  - LSTM network: `python main.py`
+  - SparkSentimentAnalysis.ipynb
+
 
 5. Visualize data:
 ..1. Start php server in `goodreads/visualization` directory: `php -S localhost:8000`. If you use `python -m http.server`, you will get the error "Failed to load http://localhost:8000/data.php: No 'Access-Control-Allow-Origin' header is present on the requested resource..."
