@@ -7,17 +7,72 @@ import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, MetaData, ForeignKey
 
+# One-time calls
+#import nltk
+#nltk.download('punkt')
+#nltk.download('stopwords')
+
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from nltk.tokenize import sent_tokenize
+
 # import pydoop.hdfs as hdfs
 import hdfs
 
 
-def load_amzn_reviews_json():
+def load_split_amzn_reviews():
     json_file = os.path.join(os.getcwd(), '../data/', 'reviews_Books_5.json')
-    with open(json_file) as data_file:
-        data_dict = json.load(data_file)
-    data = pd.DataFrame.from_dict(data_dict, orient='index')
-    data.reset_index(level=0, inplace=True)
-    return data
+    counter = 0
+    for chunk in pd.read_json(json_file, chunksize=30000, lines=True):
+        counter += 1
+        df = chunk[['overall', 'reviewText']]
+        df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
+        df = df[df.sentiment != 0]
+        df = df[['reviewText', 'sentiment']]
+        if counter == num_chunks:
+            break
+    return df
+
+
+# TODO
+def generate_train_batch(df, batch_size):
+    for j in range(len(df)):
+        text = df.iloc[[j]]
+        words = text.split()
+        words = np.asarray(words)
+        words = np.reshape(words, [-1, ])
+
+        count = collections.Counter(words).most_common()
+        for word, _ in count:
+            dictionary[word] = len(dictionary)
+        reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+
+
+# TODO
+def get_validation_data():
+    pass
+
+
+# TODO
+def get_tf_dataset(df):
+    """
+    Returns TensorFlow Dataset.
+
+    :param df: Pandas dataframe containing review text and sentiment labels.
+    :return: TensorFlow Dataset.
+    """
+    X_train, y_train, X_test, y_test = clean_reviews(df)
+
+    dx_train = tf.data.Dataset.from_tensor_slices(X_train)
+    dy_train = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
+    train_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
+    dx_test = tf.data.Dataset.from_tensor_slices(X_train)
+    dy_test = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
+    test_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
+
+    iterator = tf.data.Iterator.from_structure(train_dataset.output_types,
+                                               train_dataset.output_shapes)
+    next_element = iterator.get_next()
 
 
 def retrieve_data_hdfs():
@@ -36,9 +91,12 @@ def retrieve_data_mysql():
     return df
 
 
-def retrieve_data():
-    # df = retrieve_data_hdfs()
-    df = retrieve_data_mysql()
+def retrieve_data(hdfs=False):
+    df = pd.DataFrame()
+    if hdfs:
+        df = retrieve_data_hdfs()
+    else:
+        df = retrieve_data_mysql()
 
     # convert rating string to float
     df.rating = df.rating.astype(float).fillna(0.0)
@@ -119,6 +177,4 @@ def retrieve_sentiments():
 
 
 if __name__ == '__main__':
-    # df = load_amzn_reviews_json()
-    json_file = os.path.join(os.getcwd(), '../data/', 'reviews_Books_5.json')
-    df = pd.read_json(json_file)
+    df = load_split_amzn_reviews()

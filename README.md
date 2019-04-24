@@ -1,5 +1,5 @@
 ## Overview
-This project goes through the entire data mining process in an attempt to better understand book reviews on the Goodreads website. The goal here is to examine the sentiments of user reviews and book ratings across numerous genres.
+This project goes through the entire data mining process in an attempt to better understand book reviews on the Goodreads website. The main objective was to examine the sentiments of user reviews and book ratings across numerous genres. The approach was to train a model on a large amount of labeled data to generalize well enough to classify the relatively small, unlabeled Goodreads reviews data set.
 
 This work examines these relationships as a NLP problem - namely, a document level sentiment classification problem. Sentiment classifications are made and then data visualization techniques are used to gain insight about the review-rating-genre relationship.
 
