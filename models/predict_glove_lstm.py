@@ -27,7 +27,7 @@ tf.reset_default_graph()
 labels = tf.placeholder(tf.float32, [batchSize, numClasses])
 input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
 
-#
+# Load word vectors
 data = tf.Variable(tf.zeros([batchSize, maxSeqLength, numDimensions]),dtype=tf.float32)
 data = tf.nn.embedding_lookup(wordVectors,input_data)
 
@@ -53,7 +53,7 @@ saver = tf.train.Saver()
 saver.restore(sess, tf.train.latest_checkpoint('converted_checkpoint'))
 
 # Retrive raw input data
-df = utils.retrieve_data()
+df = utils.load_transform_data()
 
 # Classify reviews
 result = np.zeros((df.shape[0],2))

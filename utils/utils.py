@@ -36,16 +36,41 @@ def load_split_amzn_reviews():
 
 # TODO
 def generate_train_batch(df, batch_size):
-    for j in range(len(df)):
-        text = df.iloc[[j]]
-        words = text.split()
-        words = np.asarray(words)
-        words = np.reshape(words, [-1, ])
+    batch_j = 0
+    batch_x = None
+    batch_y = None
 
-        count = collections.Counter(words).most_common()
-        for word, _ in count:
-            dictionary[word] = len(dictionary)
-        reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
+    while True:
+        df = df.sample(frac=1)
+
+        for j, row in df.iterrows():
+            comment = row['reviewText']
+
+            if batch_x is None:
+                batch_x = np.zeros((batch_size, window_length, n_features), dtype='float32')
+                batch_y = np.zeros((batch_size, len(classes)), dtype='float32')
+
+            batch_x[batch_j] = text_to_vector(comment)
+            batch_y[batch_j] = row[classes].values
+            batch_j += 1
+
+            if batch_j == batch_size:
+                yield batch_x, batch_y
+                batch_x = None
+                batch_y = None
+                batch_j = 0
+
+
+    # for j in range(len(df)):
+    #     text = df.iloc[[j]]
+    #     words = text.split()
+    #     words = np.asarray(words)
+    #     words = np.reshape(words, [-1, ])
+    #
+    #     count = collections.Counter(words).most_common()
+    #     for word, _ in count:
+    #         dictionary[word] = len(dictionary)
+    #     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
 
 
 # TODO
@@ -75,28 +100,17 @@ def get_tf_dataset(df):
     next_element = iterator.get_next()
 
 
-def retrieve_data_hdfs():
-    with hdfs.open_file('/usr/local/hadoop/hadoopdata/hdfs/datanode/goodreads.csv', 'r') as f:
-        df = pd.read_csv(f)
-    return df
-
-
-def retrieve_data_mysql():
-    # connect to MySQL database and query data
-    engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
-    with engine.connect() as db_conn:
-        df = pd.read_sql('SELECT * FROM reviews', con=db_conn)
-        print('loaded dataframe from MySQL. records: ', len(df))
-        db_conn.close()
-    return df
-
-
-def retrieve_data(hdfs=False):
+def load_transform_data(hdfs=False):
     df = pd.DataFrame()
     if hdfs:
-        df = retrieve_data_hdfs()
+        with hdfs.open_file('/usr/local/hadoop/hadoopdata/hdfs/datanode/goodreads.csv', 'r') as f:
+            df = pd.read_csv(f)
     else:
-        df = retrieve_data_mysql()
+        engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
+        with engine.connect() as db_conn:
+            df = pd.read_sql('SELECT * FROM reviews', con=db_conn)
+            print('loaded dataframe from MySQL. records: ', len(df))
+            db_conn.close()
 
     # convert rating string to float
     df.rating = df.rating.astype(float).fillna(0.0)
@@ -112,11 +126,23 @@ def retrieve_data(hdfs=False):
     return df
 
 
-def cleanSentences(string):
+def cleanSentences(string, remove_stopwords=False, stem_words=False):
     # remove punctuation, parentheses, question marks, etc.
     strip_special_chars = re.compile("[^A-Za-z0-9 ]+")
-    string = string.lower().replace("<br />", " ")
-    return re.sub(strip_special_chars, "", string.lower())
+    string = string.lower()
+    string = string.replace("<br />", " ")
+    string = string.replace(r"(\().*(\))|([^a-zA-Z'])",' ')
+    if remove_stopwords:
+        stop_words = stopwords.words('english')
+        if stem_words:
+            ps = PorterStemmer()
+            string = [' '.join([ps.stem(j.lower()) for j in w.split()\
+                if j not in stop_words]) for w in string]
+        else:
+            string = [' '.join([j.lower() for j in w.split()\
+                if j not in stop_words]) for w in string]
+    # return re.sub(strip_special_chars, "", string.lower())
+    return re.sub(strip_special_chars, "", string)
 
 
 def getSentenceMatrix(sentence, batchSize, maxSeqLength, wordsList):
