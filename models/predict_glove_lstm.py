@@ -60,7 +60,7 @@ result = np.zeros((df.shape[0],2))
 for i, row in enumerate(df.itertuples(),0):
     result[i][0] = getattr(row,'id')
     inputText = getattr(row,'review')
-    inputMatrix = utils.getSentenceMatrix(inputText, batchSize, maxSeqLength, wordsList)
+    inputMatrix = utils.get_sentence_matrix(inputText, batchSize, maxSeqLength, wordsList)
     predictedSentiment = sess.run(prediction, {input_data: inputMatrix})[0]
     if (predictedSentiment[0] > predictedSentiment[1]):
         result[i][1] = 1

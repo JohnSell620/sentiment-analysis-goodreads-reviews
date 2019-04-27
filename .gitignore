@@ -15,6 +15,7 @@ data/*
 __pycache__/
 pretrained_models/
 models/converted_checkpoint
+models/checkpoints
 
 # used to convert/update model checkpoints
 # from tensorflow/tensorflow/contrib/rnn/python/tools/checkpoint_convert.py

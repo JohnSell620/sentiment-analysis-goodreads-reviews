@@ -2,15 +2,17 @@ import os
 import re
 import json
 import string
+import embeddings
 import numpy as np
 import pandas as pd
+from ast import literal_eval
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, MetaData, ForeignKey
 
 # One-time calls
-#import nltk
-#nltk.download('punkt')
-#nltk.download('stopwords')
+# import nltk
+# nltk.download('punkt')
+# nltk.download('stopwords')
 
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
@@ -18,86 +20,6 @@ from nltk.tokenize import sent_tokenize
 
 # import pydoop.hdfs as hdfs
 import hdfs
-
-
-def load_split_amzn_reviews():
-    json_file = os.path.join(os.getcwd(), '../data/', 'reviews_Books_5.json')
-    counter = 0
-    for chunk in pd.read_json(json_file, chunksize=30000, lines=True):
-        counter += 1
-        df = chunk[['overall', 'reviewText']]
-        df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
-        df = df[df.sentiment != 0]
-        df = df[['reviewText', 'sentiment']]
-        if counter == num_chunks:
-            break
-    return df
-
-
-# TODO
-def generate_train_batch(df, batch_size):
-    batch_j = 0
-    batch_x = None
-    batch_y = None
-
-    while True:
-        df = df.sample(frac=1)
-
-        for j, row in df.iterrows():
-            comment = row['reviewText']
-
-            if batch_x is None:
-                batch_x = np.zeros((batch_size, window_length, n_features), dtype='float32')
-                batch_y = np.zeros((batch_size, len(classes)), dtype='float32')
-
-            batch_x[batch_j] = text_to_vector(comment)
-            batch_y[batch_j] = row[classes].values
-            batch_j += 1
-
-            if batch_j == batch_size:
-                yield batch_x, batch_y
-                batch_x = None
-                batch_y = None
-                batch_j = 0
-
-
-    # for j in range(len(df)):
-    #     text = df.iloc[[j]]
-    #     words = text.split()
-    #     words = np.asarray(words)
-    #     words = np.reshape(words, [-1, ])
-    #
-    #     count = collections.Counter(words).most_common()
-    #     for word, _ in count:
-    #         dictionary[word] = len(dictionary)
-    #     reverse_dictionary = dict(zip(dictionary.values(), dictionary.keys()))
-
-
-# TODO
-def get_validation_data():
-    pass
-
-
-# TODO
-def get_tf_dataset(df):
-    """
-    Returns TensorFlow Dataset.
-
-    :param df: Pandas dataframe containing review text and sentiment labels.
-    :return: TensorFlow Dataset.
-    """
-    X_train, y_train, X_test, y_test = clean_reviews(df)
-
-    dx_train = tf.data.Dataset.from_tensor_slices(X_train)
-    dy_train = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
-    train_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
-    dx_test = tf.data.Dataset.from_tensor_slices(X_train)
-    dy_test = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
-    test_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
-
-    iterator = tf.data.Iterator.from_structure(train_dataset.output_types,
-                                               train_dataset.output_shapes)
-    next_element = iterator.get_next()
 
 
 def load_transform_data(hdfs=False):
@@ -126,29 +48,136 @@ def load_transform_data(hdfs=False):
     return df
 
 
-def cleanSentences(string, remove_stopwords=False, stem_words=False):
-    # remove punctuation, parentheses, question marks, etc.
+def load_split_amzn_reviews(record_count=None, num_chunks=1):
+    json_file = os.path.join(os.getcwd(), '../data/', 'reviews_Books_5.json')
+    counter = 0
+    for chunk in pd.read_json(json_file, chunksize=30000, lines=True):
+        counter += 1
+        df = chunk[['overall', 'reviewText']]
+        # df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
+        df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
+        df = df[df.sentiment != 0]
+        df = df[['reviewText', 'sentiment']]
+        if counter == num_chunks:
+            break
+    return df[:record_count]
+
+
+def normalize_text(string, remove_stopwords=False, stem_words=False):
+    """
+    Remove punctuation, parentheses, question marks, etc.
+    """
     strip_special_chars = re.compile("[^A-Za-z0-9 ]+")
     string = string.lower()
     string = string.replace("<br />", " ")
     string = string.replace(r"(\().*(\))|([^a-zA-Z'])",' ')
+    string = string.replace('&', 'and')
+    string = string.replace('@', 'at')
+    string = string.replace('0', 'zero')
+    string = string.replace('1', 'one')
+    string = string.replace('2', 'two')
+    string = string.replace('3', 'three')
+    string = string.replace('4', 'four')
+    string = string.replace('5', 'five')
+    string = string.replace('6', 'six')
+    string = string.replace('7', 'seven')
+    string = string.replace('8', 'eight')
+    string = string.replace('9', 'nine')
+    string = string.split()
     if remove_stopwords:
         stop_words = stopwords.words('english')
-        if stem_words:
-            ps = PorterStemmer()
-            string = [' '.join([ps.stem(j.lower()) for j in w.split()\
-                if j not in stop_words]) for w in string]
-        else:
-            string = [' '.join([j.lower() for j in w.split()\
-                if j not in stop_words]) for w in string]
-    # return re.sub(strip_special_chars, "", string.lower())
+        string = [w for w in string if w not in stop_words]
+    if stem_words:
+        ps = PorterStemmer()
+        string = [ps.stem(w) for w in string]
+    string = ' '.join(string)
     return re.sub(strip_special_chars, "", string)
 
 
-def getSentenceMatrix(sentence, batchSize, maxSeqLength, wordsList):
+def build_dicts(reviewText):
+    """
+    Build dictionaries mapping words to unique integer values.
+    """
+    counts = collections.Counter(reviewText).most_common()
+    dictionary = {}
+    for word, _ in counts:
+        dictionary[word] = len(dictionary)
+    return dictionary
+
+
+def generate_data_batch(batch_size=100, max_seq_length=150, embedding_size=300, train=True, training_split=0.8, word_embeddings=None):
+    """
+    Generate a random training batch of size batch_size.
+    """
+    df = load_split_amzn_reviews()
+    train_test_split_idx = int(training_split * len(df))
+    if train:
+        df = df[:train_test_split_idx]
+    else:
+        df = df[train_test_split_idx:]
+        batch_size = len(df)
+
+    if word_embeddings is None:
+        word_embeddings = embeddings.get_fastText_embedding()
+
+    def batch_embedding_matrix(words, max_seq_length=max_seq_len):
+        X = np.zeros((max_seq_length, word_embeddings.get_dimension()), dtype='float32')
+        for j, word in enumerate(words[:max_seq_len]):
+            X[j,:] = word_embeddings.get_word_vector(word).astype('float32')
+        return X
+
+
+    batch_j = 0
+    batch_x = None
+    batch_y = None
+
+    while True:
+        df = df.sample(frac=0.25)
+        for j, row in df.itterows():
+            review = row['reviewText']
+
+            if batch_x is None:
+                batch_x = np.zeros((batch_size, max_seq_length, embedding_size), dtype='float32')
+                batch_y = np.zeros((batch_size, 2), dtype='float32')
+
+            batch_x[batch_j] = batch_embedding_matrix(review.split())
+            batch_y[batch_j] = literal_eval(row['sentiment'])
+            batch_j += 1
+
+            if batch_j == batch_size:
+                return batch_x, batch_y
+                # yield batch_x, batch_y
+                # batch_x = None
+                # batch_y = None
+                # batch_j = 0
+
+
+# TODO
+def get_tf_dataset(df):
+    """
+    Returns TensorFlow Dataset.
+
+    :param df: Pandas dataframe containing review text and sentiment labels.
+    :return: TensorFlow Dataset.
+    """
+    X_train, y_train, X_test, y_test = clean_reviews(df)
+
+    dx_train = tf.data.Dataset.from_tensor_slices(X_train)
+    dy_train = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
+    train_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
+    dx_test = tf.data.Dataset.from_tensor_slices(X_train)
+    dy_test = tf.data.Dataset.from_tensor_slices(y_train).map(lambda z: tf.one_hot(z, 2))
+    test_dataset = tf.data.Dataset.zip((dx_train, dy_train)).shuffle(500).repeat().batch(30)
+
+    iterator = tf.data.Iterator.from_structure(train_dataset.output_types,
+                                               train_dataset.output_shapes)
+    next_element = iterator.get_next()
+
+
+def get_sentence_matrix(sentence, batchSize, maxSeqLength, wordsList):
     arr = np.zeros([batchSize, maxSeqLength])
     sentenceMatrix = np.zeros([batchSize,maxSeqLength], dtype='int32')
-    cleanedSentence = cleanSentences(sentence)
+    cleanedSentence = normalize_text(sentence)
     split = cleanedSentence.split()
     for indexCounter,word in enumerate(split):
         try:
@@ -193,7 +222,7 @@ def store_prediction_mysql(sentiment):
         db_conn.close()
 
 
-def retrieve_sentiments():
+def load_sentiments():
     engine = create_engine('mysql+pymysql://root:root@localhost:3306/goodreads')
     with engine.connect() as db_conn:
         df = pd.read_sql('SELECT r.id, r.title, r.genre, r.user, r.reviewDate, r.review, r.rating, s.class FROM reviews AS r INNER JOIN sentiments AS s ON r.id = s.id', con=db_conn)
@@ -203,4 +232,27 @@ def retrieve_sentiments():
 
 
 if __name__ == '__main__':
-    df = load_split_amzn_reviews()
+    # df = load_split_amzn_reviews()
+    s = 'A test sentence to be normalized @ 1 time TODAY# <a> </ul><img>'
+    s2 = """
+    long ago , the mice had a general council to consider what measures
+    they could take to outwit their common enemy , the cat . some said
+    this , and some said that but at last a young mouse got up and said
+    he had a proposal to make , which he thought would meet the case .
+    you will all agree , said he , that our chief danger consists in the
+    sly and treacherous manner in which the enemy approaches us . now ,
+    if we could receive some signal of her approach , we could easily
+    escape from her . i venture , therefore , to propose that a small
+    bell be procured , and attached by a ribbon round the neck of the cat
+    . by this means we should always know when she was about , and could
+    easily retire while she was in the neighbourhood . this proposal met
+    with general applause , until an old mouse got up and said that is
+    all very well , but who is to bell the cat ? the mice looked at one
+    another and nobody spoke . then the old mouse said it is easy to
+    propose impossible remedies .
+    """
+    print(s2)
+    # s2 = s2.replace('\n','')
+    print(s2.split())
+    sc = normalize_text(s2)
+    print(sc)
