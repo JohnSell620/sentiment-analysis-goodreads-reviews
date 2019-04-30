@@ -1,11 +1,13 @@
 goodreads
 dev
+models/logs
 *.pyc
 *.json
 *.log
 *.copy
 *.off
 *.npy
+nn.py
 .ipynb_checkpoints/
 learning.ipynb
 

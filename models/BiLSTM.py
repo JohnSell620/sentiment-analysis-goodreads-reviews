@@ -18,11 +18,11 @@ class BiLSTM(object):
         """
         # Define placeholders.
         if train_embedding:
-            self.input = tf.placeholder(tf.int32, [None, max_seq_length], name='input')
+            self.input = tf.placeholder(tf.int32, size=[None, max_seq_length], name='input')
         else:
-            self.input = tf.placeholder(tf.int32, [None, max_seq_length, embedding_dim], name='input')
-        self.seq_len = tf.placeholder(tf.int32, [None], name='lengths')
-        self.target = tf.placeholder(tf.float32, [None, n_classes], name='target')
+            self.input = tf.placeholder(tf.int32, size=[None, max_seq_length, embedding_dim], name='input')
+        self.seq_len = tf.placeholder(tf.int32, size=[None], name='lengths')
+        self.target = tf.placeholder(tf.float32, size=[None, n_classes], name='target')
         self.dropout_keep_prob = tf.placeholder(tf.float32, name='dropout_keep_prob')
 
         # Define NN parameters.
@@ -75,23 +75,30 @@ class BiLSTM(object):
         :return output: BiLSTM layer.
         """
         # for layer in range(num_layers):
-        layer = 1
-        with tf.variable_scope('encoder_{}'.format(layer),reuse=tf.AUTO_REUSE):
-
-            cell_fw = tf.contrib.rnn.LSTMCell(rnn_size, initializer=tf.truncated_normal_initializer(-0.1, 0.1, seed=2))
-            cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=keep_prob)
-
-            cell_bw = tf.contrib.rnn.LSTMCell(rnn_size, initializer=tf.truncated_normal_initializer(-0.1, 0.1, seed=2))
-            cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=keep_prob)
-
-            outputs, states = tf.nn.bidirectional_dynamic_rnn(
-                cell_fw,
-                cell_bw,
-                input_data,
-                sequence_length=seq_len,
-                dtype=tf.float32)
-            output = tf.concat(outputs,2)
-        return output
+        # layer = 1
+        # with tf.variable_scope('encoder_{}'.format(layer),reuse=tf.AUTO_REUSE):
+        #
+        #     cell_fw = tf.contrib.rnn.LSTMCell(rnn_size, initializer=tf.truncated_normal_initializer(-0.1, 0.1, seed=2))
+        #     cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw, input_keep_prob=keep_prob)
+        #
+        #     cell_bw = tf.contrib.rnn.LSTMCell(rnn_size, initializer=tf.truncated_normal_initializer(-0.1, 0.1, seed=2))
+        #     cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw, input_keep_prob=keep_prob)
+        #
+        #     outputs, states = tf.nn.bidirectional_dynamic_rnn(
+        #         cell_fw,
+        #         cell_bw,
+        #         input_data,
+        #         sequence_length=seq_len,
+        #         dtype=tf.float32)
+        #     output = tf.concat(outputs,2)
+        # return output
+        with tf.variable_scope(variable_scope, default_name='rnn_layer'):
+            lstm_cell = tf.nn.rnn_cell.LSTMCell(hidden_size, state_is_tuple=True)
+            dropout_cell = tf.nn.rnn_cell.DropoutWrapper(lstm_cell,
+                input_keep_prob=dropout_keep_prob,
+                output_keep_prob=dropout_keep_prob, seed=seed)
+            outputs, _ = tf.nn.dynamic_rnn(dropout_cell, x, dtype=tf.float32, sequence_length=seq_len)
+        return outputs
 
     def __embedding_layer(self, X, word_embeddings, embedding_len, doc_vocab_size):
         """
@@ -155,7 +162,7 @@ class BiLSTM(object):
         :return: Cross entropy losses with shape [batch_size].
         """
         with tf.name_scope('cross_entropy'):
-            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(scores, target, name='cross_entropy')
+            cross_entropy = tf.nn.softmax_cross_entropy_with_logits_v2(scores, target, name='cross_entropy')
         return cross_entropy
 
     def __loss(self, losses):

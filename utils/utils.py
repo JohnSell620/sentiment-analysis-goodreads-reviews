@@ -5,6 +5,8 @@ import string
 import embeddings
 import numpy as np
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
+
 from ast import literal_eval
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, MetaData, ForeignKey
@@ -55,8 +57,8 @@ def load_split_amzn_reviews(record_count=None, num_chunks=1):
         counter += 1
         df = chunk[['overall', 'reviewText']]
         # df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
-        df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
-        df = df[df.sentiment != 0]
+        df['sentiment'] = np.where(df['overall'] < 3, 0, np.where(df['overall'] > 4, 1, -1))
+        df = df[df.sentiment != -1]
         df = df[['reviewText', 'sentiment']]
         if counter == num_chunks:
             break
@@ -120,10 +122,11 @@ def generate_data_batch(batch_size=100, max_seq_length=150, embedding_size=300, 
     if word_embeddings is None:
         word_embeddings = embeddings.get_fastText_embedding()
 
-    def batch_embedding_matrix(words, max_seq_length=max_seq_len):
-        X = np.zeros((max_seq_length, word_embeddings.get_dimension()), dtype='float32')
+    def batch_embedding_matrix(words, max_seq_len=max_seq_length):
+        X = np.zeros((max_seq_length, 300), dtype='float32')
         for j, word in enumerate(words[:max_seq_len]):
-            X[j,:] = word_embeddings.get_word_vector(word).astype('float32')
+            # X[j,:] = word_embeddings.get_word_vector(word).astype('float32')
+            X[j,:] = word_embeddings[word].astype('float32')
         return X
 
 
@@ -133,15 +136,18 @@ def generate_data_batch(batch_size=100, max_seq_length=150, embedding_size=300, 
 
     while True:
         df = df.sample(frac=0.25)
-        for j, row in df.itterows():
+        for j, row in df.iterrows():
             review = row['reviewText']
 
             if batch_x is None:
                 batch_x = np.zeros((batch_size, max_seq_length, embedding_size), dtype='float32')
+                # batch_x = np.zeros((batch_size, max_seq_length), dtype='float32')
                 batch_y = np.zeros((batch_size, 2), dtype='float32')
 
             batch_x[batch_j] = batch_embedding_matrix(review.split())
-            batch_y[batch_j] = literal_eval(row['sentiment'])
+            # batch_x[batch_j] = np.random.randint(0, 1000, size=256)
+            # batch_y[batch_j] = literal_eval(row['sentiment'])
+            batch_y[batch_j] = np.eye(2)[row['sentiment']]
             batch_j += 1
 
             if batch_j == batch_size:
