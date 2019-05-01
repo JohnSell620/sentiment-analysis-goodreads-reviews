@@ -4,7 +4,3 @@ def get_fastText_embedding():
 
 def get_elmo_embeddings():
     pass
-
-if __name__ == '__main__':
-    ft_model = get_fastText_embedding()
-    print(ft_model)

@@ -2,10 +2,12 @@ import os
 import re
 import json
 import string
+import operator
 import embeddings
+import collections
 import numpy as np
 import pandas as pd
-pd.options.mode.chained_assignment = None  # default='warn'
+pd.options.mode.chained_assignment = None
 
 from ast import literal_eval
 from sqlalchemy import create_engine
@@ -20,7 +22,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import sent_tokenize
 
-# import pydoop.hdfs as hdfs
 import hdfs
 
 
@@ -56,7 +57,6 @@ def load_split_amzn_reviews(record_count=None, num_chunks=1):
     for chunk in pd.read_json(json_file, chunksize=30000, lines=True):
         counter += 1
         df = chunk[['overall', 'reviewText']]
-        # df['sentiment'] = np.where(df['overall'] < 3, -1, np.where(df['overall'] > 4, 1, 0))
         df['sentiment'] = np.where(df['overall'] < 3, 0, np.where(df['overall'] > 4, 1, -1))
         df = df[df.sentiment != -1]
         df = df[['reviewText', 'sentiment']]
@@ -107,7 +107,39 @@ def build_dicts(reviewText):
     return dictionary
 
 
-def generate_data_batch(batch_size=100, max_seq_length=150, embedding_size=300, train=True, training_split=0.8, word_embeddings=None):
+def build_vocabulary():
+    df = load_split_amzn_reviews()
+    vocabulary = collections.defaultdict(lambda : 0)
+    iter = 1
+    for _, row in df.iterrows():
+        review = row['reviewText']
+        review = normalize_text(review, remove_stopwords=True, stem_words=True)
+        words = review.split()
+        for word in list(set(words)):
+            w_key = vocabulary.get(word)
+            if w_key is not None:
+                continue
+            else:
+                vocabulary[word] = iter
+            iter += 1
+    vocabulary[''] = 0
+    return vocabulary
+
+
+def compress_word_embedding(vocabulary, embedding):
+    """
+    Build word embedding for Amazon reviews.
+    :return: Numpy array of shape [data_vocab_size, embedding_size(300)]
+    """
+    ft_model = embeddings.get_fastText_embedding()
+    vocabulary = build_vocabulary()
+    compressed_embedding = np.zeros((len(vocabulary), 300), dtype='float32')
+    for key, value in vocabulary.items():
+        compressed_embedding[value] = ft_model[key].astype('float32')
+    return compressed_embedding
+
+
+def generate_data_batch(batch_size=100, max_seq_length=150, vocabulary=None, embeddings=None, training_split=0.8, train=True):
     """
     Generate a random training batch of size batch_size.
     """
@@ -117,45 +149,40 @@ def generate_data_batch(batch_size=100, max_seq_length=150, embedding_size=300, 
         df = df[:train_test_split_idx]
     else:
         df = df[train_test_split_idx:]
-        batch_size = len(df)
-
-    if word_embeddings is None:
-        word_embeddings = embeddings.get_fastText_embedding()
-
-    def batch_embedding_matrix(words, max_seq_len=max_seq_length):
-        X = np.zeros((max_seq_length, 300), dtype='float32')
-        for j, word in enumerate(words[:max_seq_len]):
-            # X[j,:] = word_embeddings.get_word_vector(word).astype('float32')
-            X[j,:] = word_embeddings[word].astype('float32')
-        return X
-
+        batch_size = 50
 
     batch_j = 0
     batch_x = None
     batch_y = None
+    seq_lengths = np.zeros(batch_size, dtype='int32')
+
+    if vocabulary is None:
+        vocabulary = build_vocabulary()
+    if embeddings is None:
+        embeddings = np.random.rand(len(vocabulary), 300)
 
     while True:
-        df = df.sample(frac=0.25)
-        for j, row in df.iterrows():
+        if train:
+            df = df.sample(frac=0.25)
+        for _, row in df.iterrows():
             review = row['reviewText']
+            review = review.split()
+            review = review[:max_seq_length]
 
             if batch_x is None:
-                batch_x = np.zeros((batch_size, max_seq_length, embedding_size), dtype='float32')
-                # batch_x = np.zeros((batch_size, max_seq_length), dtype='float32')
+                # batch_x = np.zeros((batch_size, max_seq_length), dtype='int32')
+                batch_x = np.zeros((batch_size, max_seq_length, 300), dtype='float32')
                 batch_y = np.zeros((batch_size, 2), dtype='float32')
 
-            batch_x[batch_j] = batch_embedding_matrix(review.split())
-            # batch_x[batch_j] = np.random.randint(0, 1000, size=256)
-            # batch_y[batch_j] = literal_eval(row['sentiment'])
+            for k, word in enumerate(review):
+                # batch_x[batch_j][k] = vocabulary[word]
+                batch_x[batch_j][k] = embeddings[vocabulary[word]]
             batch_y[batch_j] = np.eye(2)[row['sentiment']]
+            seq_lengths[batch_j] = len(review)
             batch_j += 1
 
             if batch_j == batch_size:
-                return batch_x, batch_y
-                # yield batch_x, batch_y
-                # batch_x = None
-                # batch_y = None
-                # batch_j = 0
+                return batch_x, batch_y, seq_lengths
 
 
 # TODO
@@ -235,30 +262,3 @@ def load_sentiments():
         print('loaded dataframe from MySQL. records: ', len(df))
         db_conn.close()
     return df
-
-
-if __name__ == '__main__':
-    # df = load_split_amzn_reviews()
-    s = 'A test sentence to be normalized @ 1 time TODAY# <a> </ul><img>'
-    s2 = """
-    long ago , the mice had a general council to consider what measures
-    they could take to outwit their common enemy , the cat . some said
-    this , and some said that but at last a young mouse got up and said
-    he had a proposal to make , which he thought would meet the case .
-    you will all agree , said he , that our chief danger consists in the
-    sly and treacherous manner in which the enemy approaches us . now ,
-    if we could receive some signal of her approach , we could easily
-    escape from her . i venture , therefore , to propose that a small
-    bell be procured , and attached by a ribbon round the neck of the cat
-    . by this means we should always know when she was about , and could
-    easily retire while she was in the neighbourhood . this proposal met
-    with general applause , until an old mouse got up and said that is
-    all very well , but who is to bell the cat ? the mice looked at one
-    another and nobody spoke . then the old mouse said it is easy to
-    propose impossible remedies .
-    """
-    print(s2)
-    # s2 = s2.replace('\n','')
-    print(s2.split())
-    sc = normalize_text(s2)
-    print(sc)
